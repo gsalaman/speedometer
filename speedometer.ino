@@ -98,19 +98,62 @@ void loop(void)
 {
   float range;
   int  range_whole;
-
+  static float last_range=-1.0;
+  static unsigned long last_time_us=0;
+  unsigned long current_time_us;
+  float delta_t_us;
+  float delta_x_inches;
+  float current_speed;
+  char speed_string[16];
+  int speed_whole;
+  int speed_first_decimal;
+  
   range = get_range_inches();
+  current_time_us = micros();
 
   // +0.5 for rounding since int cast will truncate
   range = range + 0.5;
   range_whole = range;
+
   
+  // Only do the calc if range AND last range are valid (eg, not -1);
+  if ((range != -1) && (last_range != -1)) 
+  {
+    delta_t_us = current_time_us - last_time_us;
+    delta_x_inches = range - last_range;
+
+    // we just want the magnitued of speed, so make delta_x_inches positive
+    if (delta_x_inches < 0) delta_x_inches = -delta_x_inches;
+
+    // Converting units:  
+    //    inches * 12 * 5280 = miles
+    //    us * 1,000,000 * 3600 = hours
+    //  So, we take inches/us and multiply by 1000000*3600/12*5280 or 56818.18
+    current_speed = 56818.18 * delta_x_inches / delta_t_us;
+
+    // print only one decimal digit.  
+    speed_whole = current_speed;
+    speed_first_decimal = 10.0 * (current_speed - (float) speed_whole + 0.05);   // 0.05 for rounding
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    lcd.setCursor(0,1);
+    lcd.print("MPH: ");
+    lcd.print(speed_whole);
+    lcd.print(".");
+    lcd.print(speed_first_decimal);
+    
+  }
+    
   lcd.setCursor(12,0);
   lcd.print("    ");
   lcd.setCursor(12,0);
   lcd.print(range_whole);
+
+  last_time_us = current_time_us;
+  last_range = range;
+  
   
 
-  delay(100);
+  delay(1000);
   
 }
